@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#17324d">
+<title>Fixed Deposit Interest Tracker</title>
+<style>
+*{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:#f3f6f9;color:#17212b}
+header{background:#17324d;color:white;padding:20px 16px 18px;position:sticky;top:0;z-index:5}
+header h1{margin:0;font-size:22px}header p{margin:5px 0 0;opacity:.8;font-size:13px}
+.container{max-width:900px;margin:auto;padding:14px}.card{background:white;border-radius:16px;padding:16px;margin:0 0 14px;box-shadow:0 2px 10px #0000000d}
+h2{font-size:18px;margin:0 0 12px;color:#17324d}h3{font-size:15px;margin:18px 0 8px}
+.tabs{display:flex;gap:8px;margin-bottom:14px}.tabs button{flex:1}
+button{border:0;border-radius:10px;padding:12px 14px;background:#17324d;color:#fff;font-weight:700;font-size:14px;cursor:pointer}
+button.secondary{background:#e7edf3;color:#17324d}button.danger{background:#a83232}.small{padding:8px 10px;font-size:12px}
+.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}.full{grid-column:1/-1}
+label{font-size:12px;font-weight:700;color:#536372;display:block;margin-bottom:5px}
+input{width:100%;padding:11px;border:1px solid #ccd5de;border-radius:9px;font-size:15px;background:#fff}
+.result{background:#edf5ff;border-radius:12px;padding:13px;margin-top:12px}.result strong{font-size:21px}
+.summary{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:10px 0}.stat{background:#f6f8fa;border-radius:10px;padding:10px}.stat b{display:block;font-size:17px;margin-top:3px}
+.tablewrap{overflow-x:auto}table{width:100%;border-collapse:collapse;font-size:13px;min-width:700px}th,td{text-align:left;padding:9px;border-bottom:1px solid #e5e9ed}th{background:#f4f7f9;color:#52606d}
+.badge{display:inline-block;padding:4px 7px;border-radius:999px;font-size:11px;font-weight:700}.active{background:#e4f6ea;color:#18733a}.due{background:#fff0d5;color:#8a5b00}.matured{background:#e8edf3;color:#51606e}
+.empty{text-align:center;color:#74808c;padding:20px}
+.note{font-size:12px;color:#697783;line-height:1.45}
+.hidden{display:none!important}
+footer{text-align:center;font-size:11px;color:#89939c;padding:12px 0 25px}
+@media(max-width:600px){.grid{grid-template-columns:1fr}.full{grid-column:auto}.summary{grid-template-columns:1fr 1fr}.summary .stat:last-child{grid-column:1/-1}}
+</style>
+</head>
+<body>
+<header><h1>🏦 Fixed Deposit Manager</h1><p>Compare rates • Calculate interest • Track maturity</p></header>
+
+<div id="login" class="container">
+  <div class="card" style="max-width:420px;margin:35px auto">
+    <h2>🔐 Enter Password</h2>
+    <p class="note">This app uses a simple password gate. Default password: <b>FD2026</b>. You can change it after entering the app.</p>
+    <input id="password" type="password" autocomplete="current-password" placeholder="Alphanumeric password">
+    <button style="width:100%;margin-top:10px" onclick="login()">Unlock</button>
+    <p id="loginMsg" style="color:#a83232;font-size:13px"></p>
+  </div>
+</div>
+
+<main id="app" class="container hidden">
+  <div class="tabs">
+    <button id="tabCompare" onclick="showTab('compare')">📊 Compare</button>
+    <button class="secondary" id="tabTrack" onclick="showTab('track')">📅 My Deposits</button>
+  </div>
+
+  <section id="compare">
+    <div class="card">
+      <h2>1. Bank Rate Comparison</h2>
+      <p class="note">Enter different bank offers. Interest is calculated using simple annual interest based on the exact number of days.</p>
+      <div class="grid">
+        <div><label>Bank Name</label><input id="cBank" placeholder="e.g. DBS"></div>
+        <div><label>Depositor Name</label><input id="cName" placeholder="Name"></div>
+        <div><label>Amount Deposited (S$)</label><input id="cAmount" type="number" step="0.01" placeholder="10000"></div>
+        <div><label>Rate (% p.a.)</label><input id="cRate" type="number" step="0.001" placeholder="2.8"></div>
+        <div><label>Starting Date</label><input id="cStart" type="date"></div>
+        <div><label>Maturity Date</label><input id="cMaturity" type="date"></div>
+      </div>
+      <button style="margin-top:12px" onclick="addComparison()">＋ Add Bank Offer</button>
+      <div id="compareResults"></div>
+    </div>
+  </section>
+
+  <section id="track" class="hidden">
+    <div class="card">
+      <h2>2. Executed Fixed Deposits</h2>
+      <p class="note">Record deposits you actually placed. The app shows maturity date, days remaining and expected interest.</p>
+      <div class="grid">
+        <div><label>Bank Name</label><input id="tBank" placeholder="Bank"></div>
+        <div><label>Depositor Name</label><input id="tName" placeholder="Name"></div>
+        <div><label>Amount Deposited (S$)</label><input id="tAmount" type="number" step="0.01"></div>
+        <div><label>Rate (% p.a.)</label><input id="tRate" type="number" step="0.001"></div>
+        <div><label>Start Date</label><input id="tStart" type="date"></div>
+        <div><label>Due / Maturity Date</label><input id="tMaturity" type="date"></div>
+      </div>
+      <button style="margin-top:12px" onclick="addDeposit()">＋ Save Executed Deposit</button>
+      <div id="trackResults"></div>
+    </div>
+
+    <div class="card">
+      <h2>⚙️ Security</h2>
+      <label>Change Password</label>
+      <input id="newPassword" type="password" placeholder="New alphanumeric password">
+      <button class="secondary" style="margin-top:8px" onclick="changePassword()">Change Password</button>
+      <p class="note">For privacy, the app stores records only in this browser/device. The password is a basic local app gate, not banking-grade security.</p>
+      <button class="danger small" onclick="logout()">Lock App</button>
+    </div>
+  </section>
+
+  <footer>Fixed Deposit Manager • All calculations are estimates; check the bank's actual interest terms, day-count method and withholding/tax rules.</footer>
+</main>
+
+<script>
+const DEFAULT_PASSWORD="FD2026";
+let comparisons=JSON.parse(localStorage.getItem("fd_comparisons")||"[]");
+let deposits=JSON.parse(localStorage.getItem("fd_deposits")||"[]");
+let password=localStorage.getItem("fd_password")||DEFAULT_PASSWORD;
+
+function money(n){return new Intl.NumberFormat("en-SG",{style:"currency",currency:"SGD"}).format(n||0)}
+function daysBetween(a,b){if(!a||!b)return 0;return Math.max(0,Math.round((new Date(b+"T00:00:00")-new Date(a+"T00:00:00"))/86400000))}
+function interest(amount,rate,days){return amount*(rate/100)*(days/365)}
+function esc(s){return String(s||"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]))}
+function clearFields(prefix){document.querySelectorAll(`#${prefix}Bank,#${prefix}Name,#${prefix}Amount,#${prefix}Rate,#${prefix}Start,#${prefix}Maturity`).forEach(x=>x.value="")}
+
+function login(){
+  if(document.getElementById("password").value===password){
+    sessionStorage.setItem("fd_unlocked","1"); document.getElementById("login").classList.add("hidden"); document.getElementById("app").classList.remove("hidden"); renderAll();
+  } else document.getElementById("loginMsg").textContent="Incorrect password.";
+}
+function logout(){sessionStorage.removeItem("fd_unlocked");location.reload()}
+function changePassword(){
+  const p=document.getElementById("newPassword").value.trim();
+  if(!/^[A-Za-z0-9]+$/.test(p)||p.length<4){alert("Use at least 4 letters/numbers only.");return}
+  password=p;localStorage.setItem("fd_password",p);document.getElementById("newPassword").value="";alert("Password changed.");
+}
+function showTab(tab){
+  document.getElementById("compare").classList.toggle("hidden",tab!=="compare");
+  document.getElementById("track").classList.toggle("hidden",tab!=="track");
+  document.getElementById("tabCompare").classList.toggle("secondary",tab!=="compare");
+  document.getElementById("tabTrack").classList.toggle("secondary",tab!=="track");
+}
+function addComparison(){
+  const x={bank:cBank.value,name:cName.value,amount:+cAmount.value,rate:+cRate.value,start:cStart.value,maturity:cMaturity.value};
+  if(!x.bank||!x.amount||!x.rate||!x.start||!x.maturity||x.maturity<=x.start){alert("Please complete the fields and check the dates.");return}
+  comparisons.push(x);localStorage.setItem("fd_comparisons",JSON.stringify(comparisons));clearFields("c");renderComparisons();
+}
+function deleteComparison(i){comparisons.splice(i,1);localStorage.setItem("fd_comparisons",JSON.stringify(comparisons));renderComparisons()}
+function addDeposit(){
+  const x={bank:tBank.value,name:tName.value,amount:+tAmount.value,rate:+tRate.value,start:tStart.value,maturity:tMaturity.value};
+  if(!x.bank||!x.amount||!x.rate||!x.start||!x.maturity||x.maturity<x.start){alert("Please complete the fields and check the dates.");return}
+  deposits.push(x);localStorage.setItem("fd_deposits",JSON.stringify(deposits));clearFields("t");renderDeposits();
+}
+function deleteDeposit(i){deposits.splice(i,1);localStorage.setItem("fd_deposits",JSON.stringify(deposits));renderDeposits()}
+function renderComparisons(){
+  const el=document.getElementById("compareResults");
+  if(!comparisons.length){el.innerHTML='<div class="empty">No bank offers added yet.</div>';return}
+  let best=[...comparisons].sort((a,b)=>interest(b.amount,b.rate,daysBetween(b.start,b.maturity))-interest(a.amount,a.rate,daysBetween(a.start,a.maturity)))[0];
+  el.innerHTML=`<h3>Comparison</h3><div class="tablewrap"><table><thead><tr><th>Bank</th><th>Amount</th><th>Rate</th><th>Term</th><th>Interest</th><th>Maturity Value</th><th></th></tr></thead><tbody>`+
+  comparisons.map((x,i)=>{let d=daysBetween(x.start,x.maturity),it=interest(x.amount,x.rate,d);return `<tr><td><b>${esc(x.bank)}</b><br><small>${esc(x.name)}</small></td><td>${money(x.amount)}</td><td>${x.rate.toFixed(3)}%</td><td>${d} days</td><td><b>${money(it)}</b></td><td>${money(x.amount+it)}</td><td><button class="danger small" onclick="deleteComparison(${i})">Delete</button></td></tr>`}).join("")+
+  `</tbody></table></div><div class="result">🏆 <b>Highest estimated interest:</b> ${esc(best.bank)} — ${money(interest(best.amount,best.rate,daysBetween(best.start,best.maturity)))}</div>`;
+}
+function renderDeposits(){
+  const el=document.getElementById("trackResults");
+  if(!deposits.length){el.innerHTML='<div class="empty">No executed deposits recorded yet.</div>';return}
+  const today=new Date();today.setHours(0,0,0,0);
+  let total=deposits.reduce((s,x)=>s+x.amount,0), totalInterest=deposits.reduce((s,x)=>s+interest(x.amount,x.rate,daysBetween(x.start,x.maturity)),0);
+  let html=`<div class="summary"><div class="stat">Deposits<b>${deposits.length}</b></div><div class="stat">Total Principal<b>${money(total)}</b></div><div class="stat">Expected Interest<b>${money(totalInterest)}</b></div></div>`;
+  html+=`<div class="tablewrap"><table><thead><tr><th>Bank / Depositor</th><th>Principal</th><th>Rate</th><th>Maturity</th><th>Expected Interest</th><th>Status</th><th></th></tr></thead><tbody>`;
+  html+=deposits.map((x,i)=>{
+    let mat=new Date(x.maturity+"T00:00:00"), diff=Math.round((mat-today)/86400000), d=daysBetween(x.start,x.maturity), it=interest(x.amount,x.rate,d);
+    let status=diff<0?`<span class="badge matured">Matured</span>`:diff<=30?`<span class="badge due">${diff} days</span>`:`<span class="badge active">${diff} days</span>`;
+    return `<tr><td><b>${esc(x.bank)}</b><br><small>${esc(x.name)}</small></td><td>${money(x.amount)}</td><td>${x.rate.toFixed(3)}%</td><td>${esc(x.maturity)}</td><td><b>${money(it)}</b></td><td>${status}</td><td><button class="danger small" onclick="deleteDeposit(${i})">Delete</button></td></tr>`
+  }).join("");
+  el.innerHTML=html+"</tbody></table></div>";
+}
+function renderAll(){renderComparisons();renderDeposits()}
+if(sessionStorage.getItem("fd_unlocked")==="1"){document.getElementById("login").classList.add("hidden");document.getElementById("app").classList.remove("hidden");renderAll()}
+</script>
+</body>
+</html>
